@@ -31,7 +31,8 @@ double gaussrand()
 
 	return X; 
 }
-
+/*ne marche pas pour une distance supérieur à 10*/
+/*Donne une valeur aléatoire entre 0 et 10 mais la moyenne des valeurs donné est égale a distance */
 int getSNR(int distance){
 	int r = 0;
 	double temp = ((gaussrand()*2)+ distance );

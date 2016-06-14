@@ -10,7 +10,7 @@ int maxSNR(Antenne *antenne, int nb_user) {
 	int MaxU = 0;
 	int i, g, j, debitTotalTrame = 0;
 	int count = 0;
-
+/*NB_SUBCARRIERS = 128 NB_TIME_SLOTS = 5 */
 	for(g = 0; g < NB_TIME_SLOTS ; g++){// parcours les timeslots, //tant que User.BufferVide > 0 ou que g<5, on transmet au debit actuel a cet user
 		for(j = 0; j < NB_SUBCARRIERS ; j++){ //parcourt les subcariers
 
