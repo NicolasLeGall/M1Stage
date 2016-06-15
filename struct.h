@@ -24,6 +24,7 @@ struct User
 	int SNRmoyen;
 	int SNRActuels[NB_SUBCARRIERS];
 	int sommeDelais;
+	int sommeDelaisPDOR;
 	int sommePaquets;
 	Packet *lePaquet;
 };

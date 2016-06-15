@@ -28,6 +28,7 @@ User* initUser(){
 	user->bufferVide=1;
 	user->SNRmoyen=0;
 	user->sommeDelais=0;
+	user->sommeDelaisPDOR=0;
 	user->sommePaquets = 1;
 	
 	/*initialisation des condition radio de l'utilisateur*/
@@ -142,6 +143,11 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 	if(theUser->lePaquet->bitsRestants <= theUser->SNRActuels[subCarrier]){
 		//Mise à jour pour les statistiques
 		theUser->sommeDelais += (antenne->actualTime - theUser->lePaquet->dateCreation);
+		/*si le delais est supérieurs a 80 ms */
+		if((antenne->actualTime - theUser->lePaquet->dateCreation) >= 80){
+			theUser->sommeDelaisPDOR++;
+		}
+		
 		
 		// si il reste plusieurs packet dans la chaine
 		// VOIR SI IL EST POSSIBLE D4AVOIR A LA CHAINE PLUSIEUR PACKET VIDE

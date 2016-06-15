@@ -13,7 +13,19 @@ int PF(Antenne *antenne, int nb_user) {
 	float ratioMax = 0;
 	int i, g, j, debitTotalTrame = 0;
 	int count = 0;
-
+	float mkn_moyen_user[nb_user];
+	int temp=0;
+	/*calcul pour chaque utilisateur de sont N k,m moyen */
+	for (i = 0; i < nb_user ; i++){
+		for(j = 0; j < NB_SUBCARRIERS ; j++){
+			 temp += antenne->users[i]->SNRActuels[j];
+		}
+		mkn_moyen_user[i]=temp/NB_SUBCARRIERS;
+		temp=0;
+		/*printf("mkn_moyen_user[%d]=%.2f\n",i,mkn_moyen_user[i]);*/
+	}
+	i=0;
+	j=0;
 	/*NB_SUBCARRIERS = 128 NB_TIME_SLOTS = 5 */
 	for(g = 0; g < NB_TIME_SLOTS ; g++){// parcours les timeslots, //tant que User.BufferVide > 0 ou que g<5, on transmet au debit actuel a cet user
 		for(j = 0; j < NB_SUBCARRIERS ; j++){ //parcourt les subcariers
@@ -22,7 +34,7 @@ int PF(Antenne *antenne, int nb_user) {
 
 			// si l'User a un meilleur debit par rapport à son débit habituel (on utilise la distance), et que son buffer n'est pas vide: il devient le MaxUser 
 			for (i = 0; i < nb_user ; i++){
-				ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)antenne->users[i]->distance;
+				ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)mkn_moyen_user[i];
 				if(ratioActu > ratioMax && (antenne->users[i]->bufferVide == 0)){
 
 					ratioMax = ratioActu;
