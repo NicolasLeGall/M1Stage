@@ -15,8 +15,8 @@ int maxSNR(Antenne *antenne, int nb_user) {
 		for(j = 0; j < NB_SUBCARRIERS ; j++){ //parcourt les subcariers
 
 			for (i = 0; i < nb_user ; i++){
-
-				if((antenne->users[i]->SNRActuels[j] >= antenne->users[MaxU]->SNRActuels[j]) && (antenne->users[i]->bufferVide == 0)){
+				/*si le SNR est mieu que celui a le meilleur SNR jusqu'a present et que buffervide =0 (bufervide est un bolean quand = 0 le buffer n'est pas vide)*/
+				if((antenne->users[i]->SNRActuels[j] > antenne->users[MaxU]->SNRActuels[j]) && (antenne->users[i]->bufferVide == 0)){
 					// si l'User a un meilleur debit, et que son buffer n'est pas vide: il devient le MaxUser 
 					MaxU = i;
 					

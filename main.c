@@ -17,9 +17,16 @@ int main(){
 	double sommeDelais = 0;
 	double sommeDelaisProche = 0;
 	double sommeDelaisLoin = 0;
+	
+	double delais_moyen = 0;
+	double delais_moyen_proche = 0;
+	double delais_moyen_loin = 0;
+	double debit_total_simu = 0;
 
 	int nbPaquetsTotal = 0;
 	int nbPaquetsNonEnvoyes = 0;
+	int nbPaquetsNonEnvoyesLoin = 0;
+	int nbPaquetsNonEnvoyesProche = 0;
 	int nbPaquetsTotalProche = 0;
 	int nbPaquetsTotalLoin = 0;
 	Antenne monAntenne;
@@ -27,7 +34,7 @@ int main(){
 
 	int nb_user = 2;
 	int nb_tours = 10;
-	int nbBitsgenere = 150;
+	int nbBitsgenere = 250;
 	int choixAlgo = 0;
 
 	int i;
@@ -54,7 +61,8 @@ int main(){
 	if (fichier != NULL){
 		/* on écrit en début de fichier des informations pour savoir ce que vont contenir les colones*/
 		fprintf(fichier,"nb_user=%d;nb_tours=%d;nbBitsgenere=%d;choixAlgo=%d;\n",nb_user, nb_tours, nbBitsgenere, choixAlgo);
-		fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin\n");
+		/*fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin;sommeDelaisProche;sommeDelaisLoin;nbPaquetsEnvoyesProche;nbPaquetsEnvoyesLoin\n");*/
+		fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin;\n");
 
 		fclose(fichier);
 	}
@@ -120,17 +128,16 @@ int main(){
 				/*je parcour tous les packet pour un utilisateurs*/
 				while(tmpPacket->nextPacket != NULL){
 					/* Stats globales */
-					sommeDelais += (monAntenne.actualTime - tmpPacket->dateCreation);
+					/*sommeDelais += (monAntenne.actualTime - tmpPacket->dateCreation);*/
 					nbPaquetsNonEnvoyes++;
-					nbPaquetsTotal++;
 
 					/* Stats par distance */
-					if(monAntenne.users[i]->distance == 3){	
-						sommeDelaisLoin += (monAntenne.actualTime - tmpPacket->dateCreation);
-						nbPaquetsTotalLoin ++;
+					if(monAntenne.users[i]->distance == 6){	
+						/*sommeDelaisProche += (monAntenne.actualTime - tmpPacket->dateCreation);*/
+						nbPaquetsNonEnvoyesProche++;
 					}else{
-						sommeDelaisProche += (monAntenne.actualTime - tmpPacket->dateCreation);
-						nbPaquetsTotalProche ++;
+						/*sommeDelaisLoin += (monAntenne.actualTime - tmpPacket->dateCreation);*/
+						nbPaquetsNonEnvoyesLoin++;
 					}
 					tmpPacket = tmpPacket->nextPacket;
 					/*printf("PAQUETS RESTANTS ! valeur de bufferVide: %d\n ", monAntenne.users[i]->bufferVide);
@@ -153,32 +160,39 @@ int main(){
 
 		}
 
-
-
+		delais_moyen = sommeDelais/(nbPaquetsTotal-nbPaquetsNonEnvoyes);
+		delais_moyen_proche = sommeDelaisProche/(nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche);
+		delais_moyen_loin = sommeDelaisLoin/(nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
+		debit_total_simu = debitTotal/monAntenne.actualTime;
+		
 		printf("--------------------------------------------------------------\n");
 		printf("Statistiques pour %d utilisateurs: \n", nb_user);
+		printf("	Paquets proche : %d,            Paquets loin : %d,            somme Paquets : %d,            delais loin+proche : %d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
+		printf("	nbPaquetsNonEnvoyesProche : %d, nbPaquetsNonEnvoyesLoin : %d, nbPaquetsNonEnvoyesTotal : %d, sommeDeLoinProche : %d\n", nbPaquetsNonEnvoyesProche, nbPaquetsNonEnvoyesLoin, nbPaquetsNonEnvoyes, nbPaquetsNonEnvoyesProche+nbPaquetsNonEnvoyesLoin);
+		printf("	nbPaquetsEnvoyesProche : %d,    nbPaquetsEnvoyesLoin : %d,    nbPaquetsEnvoyes : %d,         sommeEnvoyesLoinProche : %d\n", nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche,
+		nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin, nbPaquetsTotal-nbPaquetsNonEnvoyes,nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche+nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
+		printf("	DelaisProche : %.1f, delaisLoin : %.1f, sommeDelais : %.1f, delaisLoinProche : %.1f\n", (double)(sommeDelaisProche),(double)(sommeDelaisLoin),(double)(sommeDelais),(double)(sommeDelaisLoin+sommeDelaisProche));
+
+		printf("	débit max théorique: %.3f bit/S\n", 128*5*4.5*nb_tours);
+		printf("	débit moyen utilisateurs théorique: %.3f bit/S\n", (128*5*4.5*nb_tours)/nb_user);
+		printf("	débit moyen utilisateurs théorique pour 2ms: %.3f bit/ms\n", ((128*5*4.5*nb_tours)/nb_user)/500);
 		printf("	Débit total : %.0f bits\n", debitTotal);
 		printf("	Débit par nb_user : %.0f bits pour %d ms\n", debitTotal/nb_user, nb_tours*2);
+		printf("	Débit total de la simulation: %.3f bits/ms\n", debit_total_simu);
 		printf("	Somme des delais: : %.3f ms\n", sommeDelais);
-		printf("	Débit total de la simulation: %.3f bits/ms\n", (double)(debitTotal/monAntenne.actualTime));
-		printf("	Delai moyen : %.3f ms\n", (double)(sommeDelais/(nbPaquetsTotal)));
-		printf("	Delai moyen des utilisateurs proches(6): %.3f ms\n", (double)(sommeDelaisProche/nbPaquetsTotalProche));
-		printf("	Delai moyen des utilisateurs eloignes(3): %.3f ms\n", (double)(sommeDelaisLoin/nbPaquetsTotalLoin));
-		printf("	Delais proche=%.1f delais loin=%.1f somme delais=%.1f delais loin+proche=%.1f\n", (double)(sommeDelaisLoin),(double)(sommeDelaisProche),(double)(sommeDelais),(double)(sommeDelaisLoin+sommeDelaisProche));
-		printf("	Paquets proche=%d Paquets loin=%d somme Paquets=%d delais loin+proche=%d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
+		printf("	Delai moyen : %.3f ms\n", delais_moyen);
+		printf("	Delai moyen des utilisateurs proches(6): %.3f ms\n", delais_moyen_proche);
+		printf("	Delai moyen des utilisateurs eloignes(3): %.3f ms\n", delais_moyen_loin);
+
 		printf("	nbPaquetsNonEnvoyes : %d || nbPaquetsTotal : %d \n", nbPaquetsNonEnvoyes, nbPaquetsTotal);
 		
-		
-
-
-	    
- 
 	    fichier = fopen("test.csv", "a");
 		/*On ecrit dans le fichier toute les valeurs que l'on a obtenue*/
 	    if (fichier != NULL)
 	    {
-	 
-	        fprintf(fichier,"%d;%.0f;%.0f;%.0f;%.0f\n", nb_user, debitTotal/monAntenne.actualTime, sommeDelais/nbPaquetsTotal,sommeDelaisProche/nbPaquetsTotalProche,sommeDelaisLoin/nbPaquetsTotalLoin);
+			/*si les nombre sont écrie avec un point au lieu d'un virgule sa passer pas sur excel */
+	        /*fprintf(fichier,"%d;%.0f;%.0f;%.0f;%.0f;%.0f;%.0f;%d;%d\n", nb_user, debit_total_simu, delais_moyen,delais_moyen_proche,delais_moyen_loin, sommeDelaisProche, sommeDelaisLoin, nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche, nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);*/
+	        fprintf(fichier,"%d;%.0f;%.0f;%.0f;%.0f;\n", nb_user, debit_total_simu, delais_moyen,delais_moyen_proche,delais_moyen_loin);
 	 
 		fclose(fichier);
 	    }
@@ -191,8 +205,15 @@ int main(){
 		sommeDelaisProche = 0;
 		sommeDelaisLoin = 0;
 
+		delais_moyen = 0;
+		delais_moyen_proche = 0;
+		delais_moyen_loin = 0;
+		debit_total_simu = 0;
+	
 		nbPaquetsTotal = 0;
 		nbPaquetsNonEnvoyes = 0;
+		nbPaquetsNonEnvoyesProche = 0;
+		nbPaquetsNonEnvoyesLoin = 0;
 		nbPaquetsTotalProche = 0;
 		nbPaquetsTotalLoin = 0;
 

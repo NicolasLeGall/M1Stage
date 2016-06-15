@@ -79,10 +79,11 @@ void produceBit(Antenne *antenne, int nbBitsgenere, int nb_user){
         }
         //Remplissage des paquets 
         while(continuer){
-        	//Si il reste de quoi remplir le paquet
-        	packet->dateCreation = antenne->actualTime;
+        	
+			//Si dans le paquet il y a pas assez de place pour tout mettre
 			/*exemple si (250 > 100 - 0) */
         	if(bitsGeneres > (100 - packet->bitsRestants)){
+				packet->dateCreation = antenne->actualTime;
         		bitsGeneres -= 100 - packet->bitsRestants;
         		//bitsGeneres =bitsGeneres - 100;
         		packet->bitsRestants = 100;
@@ -92,9 +93,18 @@ void produceBit(Antenne *antenne, int nbBitsgenere, int nb_user){
         		antenne->users[i]->sommePaquets++;
         		packet = packet->nextPacket;
         	}else{
-        		packet->bitsRestants += bitsGeneres;
-        		//packet->bitsRestants = bitsGeneres;
-        		continuer = 0;
+				/*Si le packet est vide on met a jour son temps de creation */
+				if(packet->bitsRestants == 0){
+					packet->dateCreation = antenne->actualTime;
+					packet->bitsRestants += bitsGeneres;
+					//packet->bitsRestants = bitsGeneres;
+					continuer = 0;
+				}else{/*Si il y avait deja quelque chose dedans on change pas le temps de création*/
+					packet->bitsRestants += bitsGeneres;
+					//packet->bitsRestants = bitsGeneres;
+					continuer = 0;
+				}
+        		
         	}   		     	
         }
 	}
@@ -129,7 +139,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 	/*
 	METTRE <= plutot non ?
 	*/
-	if(theUser->lePaquet->bitsRestants < theUser->SNRActuels[subCarrier]){
+	if(theUser->lePaquet->bitsRestants <= theUser->SNRActuels[subCarrier]){
 		//Mise à jour pour les statistiques
 		theUser->sommeDelais += (antenne->actualTime - theUser->lePaquet->dateCreation);
 		
