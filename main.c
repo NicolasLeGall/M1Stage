@@ -56,8 +56,8 @@ int main(){
 	scanf("%d", &nb_user);*/
 	printf("Nombre de tours pour la simulation, chaque tour = 2ms: ");
 	scanf("%d", &nb_tours);
-	/*printf("Nombre de bits à générer (>100) :");
-	scanf("%d", &nbBitsgenere);*/
+	printf("Nombre de bits à générer (>100) :");
+	scanf("%d", &nbBitsgenere);
 	printf("Algorithme : 1 pour RR, 2 pour MAXSNR, 3 pour PF :");
 	scanf("%d", &choixAlgo);
 
