@@ -43,7 +43,10 @@ int PF(Antenne *antenne, int nb_user) {
 				}
 			}
 			/*printf("maxU = %d   ", MaxU);*/
-			debitTotalTrame += consumeBit(antenne, maxU, j);
+			if(antenne->users[maxU]->bufferVide == 0){
+				debitTotalTrame += consumeBit(antenne, maxU, j);
+			}
+			
 
 		}
 

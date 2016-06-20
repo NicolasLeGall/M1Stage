@@ -30,6 +30,7 @@ User* initUser(){
 	user->sommeDelais=0;
 	user->sommeDelaisPDOR=0;
 	user->sommePaquets = 1;
+	user->sommeUR = 0;
 	
 	/*initialisation des condition radio de l'utilisateur*/
 	for(i = 0; i<128; i++)
@@ -115,10 +116,9 @@ void initMatriceDebits(Antenne *antenne, int nb_user){
 	int i = 0;
 	int j = 0;
 
-	for(i = 0; i < nb_user; i++)
-	{
+	for(i = 0; i < nb_user; i++){
 		for(j = 0; j<128; j++){
-
+			/*pour chaque utilisateur on lui définit pour les 128 onde différente combien de bit il va pouvoir envoyer */
 			antenne->users[i]->SNRActuels[j] = getSNR(antenne->users[i]->distance);
 			//printf("initMatriceDebits i :%d j :%d bitsRestants = %d \n", i,j,antenne->users[i]->SNRActuels[j]);
 		}
@@ -132,6 +132,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 	User *theUser = antenne->users[currentUser];
 	Packet *tmpPacket;
 	int bitConsommes = 0;
+	theUser->sommeUR = theUser->sommeUR + 1;
 /*
 	printf("\n bits restants : %d\n", theUser->lePaquet->bitsRestants);
 	printf(" SNR actuel: %d\n", theUser->SNRActuels[subCarrier]);*/
@@ -143,7 +144,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 	if(theUser->lePaquet->bitsRestants <= theUser->SNRActuels[subCarrier]){
 		//Mise à jour pour les statistiques
 		theUser->sommeDelais += (antenne->actualTime - theUser->lePaquet->dateCreation);
-		/*si le delais est supérieurs a 80 ms */
+		/*si le delais est supérieurs a 80 ms Pour le calcul du PDOR*/
 		if((antenne->actualTime - theUser->lePaquet->dateCreation) >= 80){
 			theUser->sommeDelaisPDOR++;
 		}

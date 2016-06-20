@@ -23,7 +23,11 @@ int maxSNR(Antenne *antenne, int nb_user) {
 				}
 			}
 			/*printf("maxU = %d   ", MaxU);*/
-			debitTotalTrame += consumeBit(antenne, MaxU, j);
+			if(antenne->users[MaxU]->bufferVide == 0){
+				debitTotalTrame += consumeBit(antenne, MaxU, j);
+				
+			}
+			
 
 		}
 

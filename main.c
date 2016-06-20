@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "struct.h"
+#include "MRG32k3a.h"
 #include "distribution.h"
 #include "RR.h"
 #include "maxSNR.h"
@@ -27,8 +28,15 @@ int main(){
 	int PDORProche=0;
 	int PDORLoin=0;
 	
+	double res_sommeUR;
+	int user_sommeUR=0;
+	
+	int somme_paquet_buffer=0;
+	
 	int nbPaquetsTotalPDORProche=0;
 	int nbPaquetsTotalPDORLoin=0;
+	
+	int somme_bitsRestants=0;
 	
 	int nbPaquetsTotal = 0;
 	int nbPaquetsTotalPDOR = 0;
@@ -46,9 +54,10 @@ int main(){
 	int choixAlgo = 0;
 
 	int i;
+	/*int jg =0;*/
+	int g =0;
 	
-	
-	
+	Packet *packet;
 
 	/*---INITIALISATIONS---*/
 	printf("\nSIMULATION NTR\n\n");
@@ -56,8 +65,8 @@ int main(){
 	scanf("%d", &nb_user);*/
 	printf("Nombre de tours pour la simulation, chaque tour = 2ms: ");
 	scanf("%d", &nb_tours);
-	printf("Nombre de bits à générer (>100) :");
-	scanf("%d", &nbBitsgenere);
+	/*printf("Nombre de bits à générer (>100) :");
+	scanf("%d", &nbBitsgenere);*/
 	printf("Algorithme : 1 pour RR, 2 pour MAXSNR, 3 pour PF :");
 	scanf("%d", &choixAlgo);
 
@@ -68,16 +77,15 @@ int main(){
 
 	if (fichier != NULL){
 		/* on écrit en début de fichier des informations pour savoir ce que vont contenir les colones*/
-		fprintf(fichier,"nb_user=%d;nb_tours=%d;nbBitsgenere=%d;choixAlgo=%d;\n",nb_user, nb_tours, nbBitsgenere, choixAlgo);
+		fprintf(fichier,"nb_user=%d;nb_tours=%d;choixAlgo=%d;\n",nb_user, nb_tours, choixAlgo);
 		/*fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin;sommeDelaisProche;sommeDelaisLoin;nbPaquetsEnvoyesProche;nbPaquetsEnvoyesLoin\n");*/
 		fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin;PDOR;PDORProche;PDORLoin;\n");
 
 		fclose(fichier);
 	}
 	
-	/*Packet *packet;
-	packet=NULL;
-	int jg =0;*/
+	
+	
 	
 	
 	/*---BOUCLE PRINCIPALE---*/
@@ -87,15 +95,12 @@ int main(){
 			
 			/*Initialisation des paquets utilisateurs*/
 			/*Le temps de création d'un packet est donnée a chaque packet avec monAntenne.actualTime */
+			nbBitsgenere=(int)(MRG32k3a()*300);
 			produceBit(&monAntenne, nbBitsgenere, nb_user);
 			
 			/*
 			for(jg = 0; jg < (nb_user); jg++){
-				packet = monAntenne.users[jg]->lePaquet;
-				while(packet != NULL){
-					printf("tour=%d user=%d packet->bitsRestants=%d packet->dateCreation%d\n",i,jg,packet->bitsRestants,packet->dateCreation);
-					packet = packet->nextPacket;
-				}
+				somme_paquet_buffer = somme_paquet_buffer + monAntenne.users[jg]->sommePaquets;
 			}*/
 			
 			/*On donne a chaque utilisateur un débit pour les 128 subcarrieur qui varie de 0 à 10 et qui a pour moyenne sa distance de l'antenne*/
@@ -119,13 +124,21 @@ int main(){
 			/*ENVOI DE LA TRAME */
 
 			/*Mise à jours des délais*/
-
-
+			
+			for(g = 0; g < (nb_user); g++){
+				packet = monAntenne.users[g]->lePaquet;
+				while(packet != NULL){
+					somme_bitsRestants = somme_bitsRestants + packet->bitsRestants;
+					packet = packet->nextPacket;
+				}
+			}
+		
+			
 			/*Incrémentation du temps*/
 			monAntenne.actualTime += 2;
 
 		}
-
+			
 		/*ici c'est la boucle ou on récupére les valeur pour faire les résultat*/
 		for(i = 0; i< nb_user; i++){
 
@@ -170,29 +183,36 @@ int main(){
 				nbPaquetsTotalPDORLoin += monAntenne.users[i]->sommeDelaisPDOR;
 			}
 			
+			user_sommeUR = user_sommeUR + monAntenne.users[i]->sommeUR;			
 		}
-
+		res_sommeUR += (double)(user_sommeUR)/(double)(5*128*nb_tours);	
+	
+			
 		delais_moyen = sommeDelais/(nbPaquetsTotal-nbPaquetsNonEnvoyes);
 		delais_moyen_proche = sommeDelaisProche/(nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche);
 		delais_moyen_loin = sommeDelaisLoin/(nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
 		debit_total_simu = debitTotal/monAntenne.actualTime;
+		
 		PDOR=((double)nbPaquetsTotalPDOR/((double)(nbPaquetsTotal-nbPaquetsNonEnvoyes)))*100;
 		PDORProche=((double)nbPaquetsTotalPDORProche/((double)(nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche)))*100;
 		PDORLoin=((double)nbPaquetsTotalPDORLoin/((double)(nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin)))*100;
 		
 		printf("--------------------------------------------------------------\n");
+				
 		printf("Statistiques pour %d utilisateurs: \n", nb_user);
-		printf("	Paquets proche : %d,            Paquets loin : %d,            somme Paquets : %d,            delais loin+proche : %d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
+		/*printf("	Paquets proche : %d,            Paquets loin : %d,            somme Paquets : %d,            delais loin+proche : %d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
 		printf("	nbPaquetsNonEnvoyesProche : %d, nbPaquetsNonEnvoyesLoin : %d, nbPaquetsNonEnvoyesTotal : %d, sommeDeLoinProche : %d\n", nbPaquetsNonEnvoyesProche, nbPaquetsNonEnvoyesLoin, nbPaquetsNonEnvoyes, nbPaquetsNonEnvoyesProche+nbPaquetsNonEnvoyesLoin);
 		printf("	nbPaquetsEnvoyesProche : %d,    nbPaquetsEnvoyesLoin : %d,    nbPaquetsEnvoyes : %d,         sommeEnvoyesLoinProche : %d\n", nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche,
 		nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin, nbPaquetsTotal-nbPaquetsNonEnvoyes,nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche+nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
 		printf("	DelaisProche : %.1f, delaisLoin : %.1f, sommeDelais : %.1f, delaisLoinProche : %.1f\n", (double)(sommeDelaisProche),(double)(sommeDelaisLoin),(double)(sommeDelais),(double)(sommeDelaisLoin+sommeDelaisProche));
-
+*/
 		/*printf("	débit max théorique: %.3f bit/S\n", 128*5*4.5*nb_tours);
 		printf("	débit moyen utilisateurs théorique: %.3f bit/S\n", (128*5*4.5*nb_tours)/nb_user);
 		printf("	débit moyen utilisateurs théorique pour 2ms: %.3f bit/ms\n", ((128*5*4.5*nb_tours)/nb_user)/500);*/
+		printf("	Pourcentage de bande passante utilisé : %.2f \n",res_sommeUR);
+		printf("	Bit par Unité de ressource : %.2f \n",debitTotal/user_sommeUR);
+		printf("	somme_bitsRestants/le temps %d\n",somme_bitsRestants/monAntenne.actualTime);
 		printf("	PDOR : %d PDORProche : %d PRDORLoin : %d\n",PDOR,PDORProche,PDORLoin);
-		
 		printf("	Débit total : %.0f bits\n", debitTotal);
 		printf("	Débit par nb_user : %.0f bits pour %d ms\n", debitTotal/nb_user, nb_tours*2);
 		printf("	Débit total de la simulation: %.3f bits/ms\n", debit_total_simu);
@@ -227,6 +247,12 @@ int main(){
 		PDORLoin =0;
 		nbPaquetsTotalPDORProche =0;
 		nbPaquetsTotalPDORLoin =0;
+		
+		somme_bitsRestants =0;
+		
+		res_sommeUR=0;
+		user_sommeUR=0;
+		somme_paquet_buffer=0;
 		
 		delais_moyen = 0;
 		delais_moyen_proche = 0;
