@@ -20,7 +20,7 @@ int PF(Antenne *antenne, int nb_user) {
 		for(j = 0; j < NB_SUBCARRIERS ; j++){
 			 temp += antenne->users[i]->SNRActuels[j];
 		}
-		mkn_moyen_user[i]=temp/NB_SUBCARRIERS;
+		mkn_moyen_user[i]=(float)temp/NB_SUBCARRIERS;
 		temp=0;
 		/*printf("mkn_moyen_user[%d]=%.2f\n",i,mkn_moyen_user[i]);*/
 	}
@@ -34,7 +34,8 @@ int PF(Antenne *antenne, int nb_user) {
 
 			// si l'User a un meilleur debit par rapport à son débit habituel (on utilise la distance), et que son buffer n'est pas vide: il devient le MaxUser 
 			for (i = 0; i < nb_user ; i++){
-				ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)mkn_moyen_user[i];
+				/*ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)mkn_moyen_user[i];*/
+				ratioActu = (float)(antenne->users[i]->SNRActuels[j]) / (float)(antenne->users[i]->distance);
 				if(ratioActu > ratioMax && (antenne->users[i]->bufferVide == 0)){
 
 					ratioMax = ratioActu;
@@ -46,10 +47,7 @@ int PF(Antenne *antenne, int nb_user) {
 			if(antenne->users[maxU]->bufferVide == 0){
 				debitTotalTrame += consumeBit(antenne, maxU, j);
 			}
-			
-
 		}
-
 	}
 	return debitTotalTrame;
 }

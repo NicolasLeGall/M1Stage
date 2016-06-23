@@ -132,6 +132,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 	User *theUser = antenne->users[currentUser];
 	Packet *tmpPacket;
 	int bitConsommes = 0;
+	/*Compte le nombre dUR utiliser*/
 	theUser->sommeUR = theUser->sommeUR + 1;
 /*
 	printf("\n bits restants : %d\n", theUser->lePaquet->bitsRestants);

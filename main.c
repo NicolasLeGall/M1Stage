@@ -24,6 +24,8 @@ int main(){
 	double delais_moyen_loin = 0;
 	double debit_total_simu = 0;
 	
+	double bit_par_UR = 0;
+	
 	int PDOR=0;
 	int PDORProche=0;
 	int PDORLoin=0;
@@ -31,12 +33,16 @@ int main(){
 	double res_sommeUR;
 	int user_sommeUR=0;
 	
-	int somme_paquet_buffer=0;
+	int taux_remplissage_buffer=0;
+	int taux_remplissage_buffer_proche=0;
+	int taux_remplissage_buffer_loin=0;
 	
 	int nbPaquetsTotalPDORProche=0;
 	int nbPaquetsTotalPDORLoin=0;
 	
-	int somme_bitsRestants=0;
+	double somme_bitsRestants=0;
+	double somme_bitsRestants_loin=0;
+	double somme_bitsRestants_proche=0;
 	
 	int nbPaquetsTotal = 0;
 	int nbPaquetsTotalPDOR = 0;
@@ -52,12 +58,14 @@ int main(){
 	int nb_tours = 10;
 	int nbBitsgenere = 150;
 	int choixAlgo = 0;
-
+	int total_nbBitsgenere = 0;
 	int i;
 	/*int jg =0;*/
 	int g =0;
 	
 	Packet *packet;
+	Packet *packet_proche;
+	Packet *packet_loin;
 
 	/*---INITIALISATIONS---*/
 	printf("\nSIMULATION NTR\n\n");
@@ -79,7 +87,7 @@ int main(){
 		/* on écrit en début de fichier des informations pour savoir ce que vont contenir les colones*/
 		fprintf(fichier,"nb_user=%d;nb_tours=%d;choixAlgo=%d;\n",nb_user, nb_tours, choixAlgo);
 		/*fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin;sommeDelaisProche;sommeDelaisLoin;nbPaquetsEnvoyesProche;nbPaquetsEnvoyesLoin\n");*/
-		fprintf(fichier,"nb_user;debit;delais;delai_proche;delai_loin;PDOR;PDORProche;PDORLoin;\n");
+		fprintf(fichier,"nb_user;debit;total_nbBitsgenere;nb_bit_consommer;delais;delai_proche;delai_loin;PDOR;PDORProche;PDORLoin;Bandepassante;Bit_par_UR;Taux_remplissage_buffer;Taux_remplissage_buffer_proche;Taux_remplissage_buffer_loin\n");
 
 		fclose(fichier);
 	}
@@ -97,11 +105,7 @@ int main(){
 			/*Le temps de création d'un packet est donnée a chaque packet avec monAntenne.actualTime */
 			nbBitsgenere=(int)(MRG32k3a()*300);
 			produceBit(&monAntenne, nbBitsgenere, nb_user);
-			
-			/*
-			for(jg = 0; jg < (nb_user); jg++){
-				somme_paquet_buffer = somme_paquet_buffer + monAntenne.users[jg]->sommePaquets;
-			}*/
+			total_nbBitsgenere = total_nbBitsgenere + nbBitsgenere;
 			
 			/*On donne a chaque utilisateur un débit pour les 128 subcarrieur qui varie de 0 à 10 et qui a pour moyenne sa distance de l'antenne*/
 			initMatriceDebits(&monAntenne, nb_user);		
@@ -121,16 +125,26 @@ int main(){
 			}
 		
 
-			/*ENVOI DE LA TRAME */
-
-			/*Mise à jours des délais*/
-			
+			/*Calcul du nombre de bit qui reste dans les paquets non envoyer*/
 			for(g = 0; g < (nb_user); g++){
 				packet = monAntenne.users[g]->lePaquet;
 				while(packet != NULL){
 					somme_bitsRestants = somme_bitsRestants + packet->bitsRestants;
 					packet = packet->nextPacket;
 				}
+				if(monAntenne.users[g]->distance == 6){
+					packet_proche = monAntenne.users[g]->lePaquet;
+					while(packet_proche != NULL){
+						somme_bitsRestants_proche = somme_bitsRestants_proche + packet_proche->bitsRestants;
+						packet_proche = packet_proche->nextPacket;
+					}
+				}else{
+					packet_loin = monAntenne.users[g]->lePaquet;
+					while(packet_loin != NULL){
+						somme_bitsRestants_loin  = somme_bitsRestants_loin + packet_loin->bitsRestants;
+						packet_loin = packet_loin->nextPacket;
+					}
+				}	
 			}
 		
 			
@@ -182,12 +196,17 @@ int main(){
 				nbPaquetsTotalLoin += monAntenne.users[i]->sommePaquets;
 				nbPaquetsTotalPDORLoin += monAntenne.users[i]->sommeDelaisPDOR;
 			}
-			
+			/*récupération du nombre d'UR utiliser */
 			user_sommeUR = user_sommeUR + monAntenne.users[i]->sommeUR;			
 		}
-		res_sommeUR += (double)(user_sommeUR)/(double)(5*128*nb_tours);	
+		
+		res_sommeUR = ((double)(user_sommeUR)/(double)(5*128*nb_tours))*100;	
 	
-			
+		bit_par_UR = debitTotal/((double)user_sommeUR);
+		taux_remplissage_buffer = somme_bitsRestants/monAntenne.actualTime;
+		taux_remplissage_buffer_proche = somme_bitsRestants_proche/monAntenne.actualTime;
+		taux_remplissage_buffer_loin = somme_bitsRestants_loin/monAntenne.actualTime;
+		
 		delais_moyen = sommeDelais/(nbPaquetsTotal-nbPaquetsNonEnvoyes);
 		delais_moyen_proche = sommeDelaisProche/(nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche);
 		delais_moyen_loin = sommeDelaisLoin/(nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
@@ -200,21 +219,22 @@ int main(){
 		printf("--------------------------------------------------------------\n");
 				
 		printf("Statistiques pour %d utilisateurs: \n", nb_user);
-		/*printf("	Paquets proche : %d,            Paquets loin : %d,            somme Paquets : %d,            delais loin+proche : %d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
+		printf("	Paquets proche : %d,            Paquets loin : %d,            somme Paquets : %d,            delais loin+proche : %d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
 		printf("	nbPaquetsNonEnvoyesProche : %d, nbPaquetsNonEnvoyesLoin : %d, nbPaquetsNonEnvoyesTotal : %d, sommeDeLoinProche : %d\n", nbPaquetsNonEnvoyesProche, nbPaquetsNonEnvoyesLoin, nbPaquetsNonEnvoyes, nbPaquetsNonEnvoyesProche+nbPaquetsNonEnvoyesLoin);
 		printf("	nbPaquetsEnvoyesProche : %d,    nbPaquetsEnvoyesLoin : %d,    nbPaquetsEnvoyes : %d,         sommeEnvoyesLoinProche : %d\n", nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche,
 		nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin, nbPaquetsTotal-nbPaquetsNonEnvoyes,nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche+nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
 		printf("	DelaisProche : %.1f, delaisLoin : %.1f, sommeDelais : %.1f, delaisLoinProche : %.1f\n", (double)(sommeDelaisProche),(double)(sommeDelaisLoin),(double)(sommeDelais),(double)(sommeDelaisLoin+sommeDelaisProche));
-*/
+
 		/*printf("	débit max théorique: %.3f bit/S\n", 128*5*4.5*nb_tours);
 		printf("	débit moyen utilisateurs théorique: %.3f bit/S\n", (128*5*4.5*nb_tours)/nb_user);
 		printf("	débit moyen utilisateurs théorique pour 2ms: %.3f bit/ms\n", ((128*5*4.5*nb_tours)/nb_user)/500);*/
 		printf("	Pourcentage de bande passante utilisé : %.2f \n",res_sommeUR);
-		printf("	Bit par Unité de ressource : %.2f \n",debitTotal/user_sommeUR);
-		printf("	somme_bitsRestants/le temps %d\n",somme_bitsRestants/monAntenne.actualTime);
+		printf("	Bit par Unité de ressource : %.2f \n",bit_par_UR);
+		printf("	somme_bitsRestants/le temps : %d somme_bitsRestants_proche/le temps : %d somme_bitsRestants_loin/le temps : %d\n",taux_remplissage_buffer,taux_remplissage_buffer_proche,taux_remplissage_buffer_loin);
 		printf("	PDOR : %d PDORProche : %d PRDORLoin : %d\n",PDOR,PDORProche,PDORLoin);
-		printf("	Débit total : %.0f bits\n", debitTotal);
-		printf("	Débit par nb_user : %.0f bits pour %d ms\n", debitTotal/nb_user, nb_tours*2);
+		printf("	Nombre total de Bits genere : %d bits\n", total_nbBitsgenere);
+		printf("	Nombre total de Bits consommer : %.0f bits\n", debitTotal);
+		/*printf("	Débit par nb_user : %.0f bits pour %d ms\n", debitTotal/nb_user, nb_tours*2);*/
 		printf("	Débit total de la simulation: %.3f bits/ms\n", debit_total_simu);
 		printf("	Somme des delais: : %.3f ms\n", sommeDelais);
 		printf("	Delai moyen : %.3f ms\n", delais_moyen);
@@ -229,14 +249,17 @@ int main(){
 	    {
 			/*si les nombre sont écrie avec un point au lieu d'un virgule sa passer pas sur excel */
 	        /*fprintf(fichier,"%d;%.0f;%.0f;%.0f;%.0f;%.0f;%.0f;%d;%d\n", nb_user, debit_total_simu, delais_moyen,delais_moyen_proche,delais_moyen_loin, sommeDelaisProche, sommeDelaisLoin, nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche, nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);*/
-	        fprintf(fichier,"%d;%.0f;%.0f;%.0f;%.0f;%d;%d;%d\n", nb_user, debit_total_simu, delais_moyen,delais_moyen_proche,delais_moyen_loin,PDOR,PDORProche,PDORLoin);
+	        fprintf(fichier,"%d;%.0f;%d;%.0f;%.0f;%.0f;%.0f;%d;%d;%d;%.2f;%.2f;%d;%d;%d\n", nb_user, debit_total_simu, total_nbBitsgenere, debitTotal, delais_moyen, delais_moyen_proche, delais_moyen_loin,
+			PDOR, PDORProche, PDORLoin, res_sommeUR, bit_par_UR, taux_remplissage_buffer, taux_remplissage_buffer_proche, taux_remplissage_buffer_loin);
 	 
 		fclose(fichier);
 	    }
 		/* on increment le nombre d'utilisateur pour la boucle while*/ 
 		nb_user=nb_user+2;
+		
 		/* on reinitialise toute les valeurs*/	
 		debitTotal = 0;
+		total_nbBitsgenere = 0;
 		
 		sommeDelais = 0;
 		sommeDelaisProche = 0;
@@ -248,11 +271,18 @@ int main(){
 		nbPaquetsTotalPDORProche =0;
 		nbPaquetsTotalPDORLoin =0;
 		
+		bit_par_UR =0;
+		
 		somme_bitsRestants =0;
+		somme_bitsRestants_loin =0;
+		somme_bitsRestants_proche =0;
+		
+		taux_remplissage_buffer =0;
+		taux_remplissage_buffer_proche =0;
+		taux_remplissage_buffer_loin =0;
 		
 		res_sommeUR=0;
 		user_sommeUR=0;
-		somme_paquet_buffer=0;
 		
 		delais_moyen = 0;
 		delais_moyen_proche = 0;
