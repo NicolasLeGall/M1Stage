@@ -3,7 +3,7 @@
 
 #include "initialisation.h"
 #include "struct.h"
-
+#include "MRG32k3a.h"
 int randDist = 0;
 
 Packet* createPacket(time){
@@ -57,9 +57,10 @@ void initAntenne(Antenne *antenne, int nb_user){
 }
 
 //!!! Amélioration possible en ajoutant un LastPacket 
-void produceBit(Antenne *antenne, int nbBitsgenere, int nb_user){
+int produceBit(Antenne *antenne, int nb_user){
 	int i = 0;
 	int bitsGeneres ;
+	int total_bitsGeneres=0;
 	int debordement = 0;
 	int resteARemplir = 0;
 	int continuer = 1;
@@ -73,7 +74,8 @@ void produceBit(Antenne *antenne, int nbBitsgenere, int nb_user){
 
 		continuer = 1;
 		packet=NULL;
-		bitsGeneres=nbBitsgenere;
+		bitsGeneres=(int)(MRG32k3a()*300);
+		total_bitsGeneres = total_bitsGeneres + bitsGeneres;
 		packet = antenne->users[i]->lePaquet;
 		//recupere le dernier paquet
 		while(packet->nextPacket != NULL){
@@ -110,6 +112,7 @@ void produceBit(Antenne *antenne, int nbBitsgenere, int nb_user){
         	}   		     	
         }
 	}
+	return total_bitsGeneres;
 }
 
 void initMatriceDebits(Antenne *antenne, int nb_user){
@@ -119,6 +122,11 @@ void initMatriceDebits(Antenne *antenne, int nb_user){
 	for(i = 0; i < nb_user; i++){
 		for(j = 0; j<128; j++){
 			/*pour chaque utilisateur on lui définit pour les 128 onde différente combien de bit il va pouvoir envoyer */
+			/*if(antenne->users[i]->distance == 6){
+				antenne->users[i]->SNRActuels[j] =6;
+			}else{
+				antenne->users[i]->SNRActuels[j] =3;
+			}*/
 			antenne->users[i]->SNRActuels[j] = getSNR(antenne->users[i]->distance);
 			//printf("initMatriceDebits i :%d j :%d bitsRestants = %d \n", i,j,antenne->users[i]->SNRActuels[j]);
 		}

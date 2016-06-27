@@ -27,6 +27,8 @@ struct User
 	int sommeDelaisPDOR;
 	int sommePaquets;
 	int sommeUR;
+
+
 	Packet *lePaquet;
 };
 

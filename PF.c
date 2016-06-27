@@ -15,6 +15,8 @@ int PF(Antenne *antenne, int nb_user) {
 	int count = 0;
 	float mkn_moyen_user[nb_user];
 	int temp=0;
+	int proche =0;
+	int loin = 0;
 	/*calcul pour chaque utilisateur de sont N k,m moyen */
 	for (i = 0; i < nb_user ; i++){
 		for(j = 0; j < NB_SUBCARRIERS ; j++){
@@ -28,26 +30,41 @@ int PF(Antenne *antenne, int nb_user) {
 	j=0;
 	/*NB_SUBCARRIERS = 128 NB_TIME_SLOTS = 5 */
 	for(g = 0; g < NB_TIME_SLOTS ; g++){// parcours les timeslots, //tant que User.BufferVide > 0 ou que g<5, on transmet au debit actuel a cet user
+		// proche =0;
+			// loin =0;
 		for(j = 0; j < NB_SUBCARRIERS ; j++){ //parcourt les subcariers
 			maxU = 0;
 			ratioMax = 0;
-
+			
 			// si l'User a un meilleur debit par rapport à son débit habituel (on utilise la distance), et que son buffer n'est pas vide: il devient le MaxUser 
 			for (i = 0; i < nb_user ; i++){
-				/*ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)mkn_moyen_user[i];*/
-				ratioActu = (float)(antenne->users[i]->SNRActuels[j]) / (float)(antenne->users[i]->distance);
-				if(ratioActu > ratioMax && (antenne->users[i]->bufferVide == 0)){
+				// ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)mkn_moyen_user[i];
+				ratioActu = (((float)antenne->users[i]->SNRActuels[j])) / mkn_moyen_user[i];
+				//ratioActu = (float)(antenne->users[i]->SNRActuels[j]) / (float)(antenne->users[i]->distance);
+				/*if(antenne->users[i]->distance == 6){
+					ratioActu = (((float)antenne->users[i]->SNRActuels[j])) / 5.5;
+					antenne->users[i]->proche+=mkn_moyen_user[i];
+				}else{
+					ratioActu = (((float)antenne->users[i]->SNRActuels[j])) / 2.7;
+					antenne->users[i]->loin+=mkn_moyen_user[i];
+				}*/
+				if((ratioActu > ratioMax) && (antenne->users[i]->bufferVide == 0)){
 
 					ratioMax = ratioActu;
 					maxU = i;
 					
+					
 				}
 			}
+			
+			/*debitTotalTrame += consumeBit(antenne, maxU, j);*/
 			/*printf("maxU = %d   ", MaxU);*/
 			if(antenne->users[maxU]->bufferVide == 0){
 				debitTotalTrame += consumeBit(antenne, maxU, j);
 			}
 		}
+		//printf("proche %.2f || loin %.2f --- ", (float)(proche)/((nb_user/2)*128) ,(float)(loin)/((nb_user/2)*128));
 	}
+	// printf("proche %.2f || loin %.2f --- ", (float)(proche)/((nb_user/2)*128*5) ,(float)(loin)/((nb_user/2)*128*5));
 	return debitTotalTrame;
 }
