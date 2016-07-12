@@ -18,12 +18,14 @@ int RR(Antenne *antenne, int nb_user){
 	for(i = 0; i < NB_TIME_SLOTS ; i++){
 		for(j = 0; j< NB_SUBCARRIERS ; j++){
 			while(tamp != -1){
+				// on regarde si l'utilisateur a quelque chose a consommer
 				if(antenne->users[currentUser]->bufferVide == 0){
 					//consumeBit renvois des valeurs de 0 à 10. renvois le nombre de bit consumer dans un packet d'un utilisateurs dans un time slot pour une subcarrier
 					debitTotalTrame += consumeBit(antenne, currentUser, j);
 					
 					tamp = -1;
-					
+				
+				//sinon on passe a l'user d'apres
 				}else{
 					//permet de parcourir tout les utilisateurs pour voir si chaqun a quelque chose a consommer.
 					tamp = tamp + 1;

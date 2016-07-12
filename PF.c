@@ -5,6 +5,7 @@
 #include "PF.h"
 #include "distribution.h"
 #include "initialisation.h"
+#include "MRG32k3a.h"
 
 int PF(Antenne *antenne, int nb_user) {	
 
@@ -17,6 +18,8 @@ int PF(Antenne *antenne, int nb_user) {
 	int temp=0;
 	int proche =0;
 	int loin = 0;
+	int new = 0;
+	int random_user = 0;
 	/*calcul pour chaque utilisateur de sont N k,m moyen */
 	for (i = 0; i < nb_user ; i++){
 		for(j = 0; j < NB_SUBCARRIERS ; j++){
@@ -35,11 +38,12 @@ int PF(Antenne *antenne, int nb_user) {
 		for(j = 0; j < NB_SUBCARRIERS ; j++){ //parcourt les subcariers
 			maxU = 0;
 			ratioMax = 0;
-			
+			new = 0;
+			random_user=(int)(MRG32k3a()*nb_user);//permet de commencer a parcourir la liste de user par un user choisi aléatoirement
 			// si l'User a un meilleur debit par rapport à son débit habituel (on utilise la distance), et que son buffer n'est pas vide: il devient le MaxUser 
-			for (i = 0; i < nb_user ; i++){
+			for (i = random_user; i < nb_user ; i++){
 				// ratioActu = (float)antenne->users[i]->SNRActuels[j] / (float)mkn_moyen_user[i];
-				ratioActu = (((float)antenne->users[i]->SNRActuels[j])) / mkn_moyen_user[i];
+				ratioActu = ((float)antenne->users[i]->SNRActuels[j]) / (mkn_moyen_user[i]);
 				//ratioActu = (float)(antenne->users[i]->SNRActuels[j]) / (float)(antenne->users[i]->distance);
 				/*if(antenne->users[i]->distance == 6){
 					ratioActu = (((float)antenne->users[i]->SNRActuels[j])) / 5.5;
@@ -52,14 +56,25 @@ int PF(Antenne *antenne, int nb_user) {
 
 					ratioMax = ratioActu;
 					maxU = i;
+					new = 1;
 					
+				}
+			}
+			for (i = 0; i < random_user ; i++){
+				ratioActu = ((float)antenne->users[i]->SNRActuels[j]) / (mkn_moyen_user[i]);
+
+				if((ratioActu > ratioMax) && (antenne->users[i]->bufferVide == 0)){
+
+					ratioMax = ratioActu;
+					maxU = i;
+					new = 1;
 					
 				}
 			}
 			
 			/*debitTotalTrame += consumeBit(antenne, maxU, j);*/
 			/*printf("maxU = %d   ", MaxU);*/
-			if(antenne->users[maxU]->bufferVide == 0){
+			if(new == 1){
 				debitTotalTrame += consumeBit(antenne, maxU, j);
 			}
 		}

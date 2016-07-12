@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <errno.h>
 
 #include "initialisation.h"
 #include "struct.h"
@@ -30,7 +32,10 @@ User* initUser(){
 	user->sommeDelais=0;
 	user->sommeDelaisPDOR=0;
 	user->sommePaquets = 1;
+	user->sommePaquets_conommer = 0;
 	user->sommeUR = 0;
+	user->bit_en_trop = 0;
+	
 	
 	/*initialisation des condition radio de l'utilisateur*/
 	for(i = 0; i<128; i++)
@@ -58,59 +63,95 @@ void initAntenne(Antenne *antenne, int nb_user){
 
 //!!! Amélioration possible en ajoutant un LastPacket 
 int produceBit(Antenne *antenne, int nb_user){
+
 	int i = 0;
+	int temps = 0;
 	int bitsGeneres ;
 	int total_bitsGeneres=0;
 	int debordement = 0;
 	int resteARemplir = 0;
-	int continuer = 1;
-
+	int continuer = 1;	
 	// Création d'un nouveau packet 
 	Packet *packet;
-	
+	Packet *packet_test;
 	for(i = 0; i < (nb_user); i++){
-
-		antenne->users[i]->bufferVide = 0;
-
+		//antenne->users[i]->bufferVide = 0;
 		continuer = 1;
 		packet=NULL;
-		bitsGeneres=(int)(MRG32k3a()*300);
+		//bitsGeneres=(int)(MRG32k3a()*300);
+		// c'est de la magie noire mais sa génére en moyenne 150.5 bit
+		bitsGeneres=(int)((-1 / 0.00666666) *(log( 1 - MRG32k3a())));
 		total_bitsGeneres = total_bitsGeneres + bitsGeneres;
 		packet = antenne->users[i]->lePaquet;
+		packet_test = antenne->users[i]->lePaquet;
+		antenne->users[i]->bit_en_trop = (antenne->users[i]->bit_en_trop) + bitsGeneres;
 		//recupere le dernier paquet
-		while(packet->nextPacket != NULL){
+		/*while(packet->nextPacket != NULL){
             packet = packet->nextPacket;
-        }
+        }*/
         //Remplissage des paquets 
+
         while(continuer){
-        	
-			//Si dans le paquet il y a pas assez de place pour tout mettre
-			/*exemple si (250 > 100 - 0) */
-        	if(bitsGeneres > (100 - packet->bitsRestants)){
-				packet->dateCreation = antenne->actualTime;
-        		bitsGeneres -= 100 - packet->bitsRestants;
-        		//bitsGeneres =bitsGeneres - 100;
-        		packet->bitsRestants = 100;
-        		packet->nextPacket = createPacket(0);
 
-
-        		antenne->users[i]->sommePaquets++;
-        		packet = packet->nextPacket;
-        	}else{
-				/*Si le packet est vide on met a jour son temps de creation */
-				if(packet->bitsRestants == 0){
+			// si le buffer est vide
+        	if(antenne->users[i]->bufferVide == 1){
+				
+				// si le nombre de bit a géné est plus grand que la taille d'un paquet
+				if(antenne->users[i]->bit_en_trop > 100){
+					antenne->users[i]->bufferVide = 0;
 					packet->dateCreation = antenne->actualTime;
-					packet->bitsRestants += bitsGeneres;
-					//packet->bitsRestants = bitsGeneres;
+					packet->bitsRestants=100;
+					antenne->users[i]->bit_en_trop = antenne->users[i]->bit_en_trop - 100;
+					packet->nextPacket = createPacket(0);
+					packet = packet->nextPacket;
+					antenne->users[i]->sommePaquets++;
+				}else{
 					continuer = 0;
-				}else{/*Si il y avait deja quelque chose dedans on change pas le temps de création*/
-					packet->bitsRestants += bitsGeneres;
-					//packet->bitsRestants = bitsGeneres;
-					continuer = 0;
+					/*packet->dateCreation = antenne->actualTime;
+					packet->bitsRestants=bitsGeneres;
+					bitsGeneres = 0;
+					packet->nextPacket = createPacket(0);
+					packet = packet->nextPacket;
+					antenne->users[i]->sommePaquets++;*/
 				}
-        		
-        	}   		     	
+			}else{//si le buffer contient quelque chose (n'est pas vide)
+				// on parcourt les paquet pour arriver au dernier
+				while(packet->nextPacket != NULL){
+					packet = packet->nextPacket;
+				}
+				
+				if(antenne->users[i]->bit_en_trop > 100){
+					packet->dateCreation = antenne->actualTime;
+					packet->bitsRestants=100;
+					antenne->users[i]->bit_en_trop = antenne->users[i]->bit_en_trop - 100;
+					packet->nextPacket =createPacket(0);
+					packet = packet->nextPacket;
+					antenne->users[i]->sommePaquets++;
+				}else{
+					continuer = 0;
+					/*packet->dateCreation = antenne->actualTime;
+					packet->bitsRestants=bitsGeneres;
+					bitsGeneres = 0;
+					packet->nextPacket = createPacket(0);
+					packet = packet->nextPacket;
+					antenne->users[i]->sommePaquets++;*/
+				}
+			}
         }
+		/*if(antenne->users[i]->distance == 6){
+			printf("User: %d ->",i);
+			while(packet_test->nextPacket != NULL){
+				//printf("[%d]->",packet_test->bitsRestants);
+				temps++;
+				
+				packet_test = packet_test->nextPacket;
+			}
+			printf("[%d]->",temps);
+			printf("\n");
+		}
+		
+		temps = 0;*/
+		
 	}
 	return total_bitsGeneres;
 }
@@ -147,9 +188,6 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 	printf(" SNR actuel: %d\n", theUser->SNRActuels[subCarrier]);*/
 
 	//Si on consomme plus de bits que le paquet en contient
-	/*
-	METTRE <= plutot non ?
-	*/
 	if(theUser->lePaquet->bitsRestants <= theUser->SNRActuels[subCarrier]){
 		//Mise à jour pour les statistiques
 		theUser->sommeDelais += (antenne->actualTime - theUser->lePaquet->dateCreation);
@@ -160,9 +198,8 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 		
 		
 		// si il reste plusieurs packet dans la chaine
-		// VOIR SI IL EST POSSIBLE D4AVOIR A LA CHAINE PLUSIEUR PACKET VIDE
-		if(theUser->lePaquet->nextPacket != NULL){
-	
+		if((theUser->lePaquet->nextPacket->nextPacket != NULL) ){
+	theUser->sommePaquets_conommer++;
 			//On soustrait au prochain paquet le SNR moins le contenu du paquet actuel 
 			bitConsommes = theUser->SNRActuels[subCarrier];
 			theUser->lePaquet->nextPacket->bitsRestants = theUser->lePaquet->nextPacket->bitsRestants - (theUser->SNRActuels[subCarrier] - theUser->lePaquet->bitsRestants);
@@ -171,7 +208,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 			theUser->lePaquet = theUser->lePaquet->nextPacket;
 			//free(tmpPacket);
 		}else{//si il rester qu'un packet
-			
+			theUser->sommePaquets_conommer++;
 			bitConsommes = theUser->lePaquet->bitsRestants;
 			theUser->lePaquet->bitsRestants = 0;
 
@@ -189,6 +226,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 
 	//printf(" bits restants Apres: %d\n", theUser->lePaquet->bitsRestants);
 	// On retourne le nombre de bits côtés 
+	
 	return bitConsommes;
 }
 

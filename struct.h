@@ -2,7 +2,7 @@
 #define STRUCT_H
 
 #define NB_SUBCARRIERS 128
-#define NB_MAX_USERS 250
+#define NB_MAX_USERS 500
 #define NB_TIME_SLOTS 5 
 #define BUFFERS_PER_USER 10
 #define PACKETS_CREATION_RATIO 50
@@ -26,9 +26,9 @@ struct User
 	int sommeDelais;
 	int sommeDelaisPDOR;
 	int sommePaquets;
+	int sommePaquets_conommer;
 	int sommeUR;
-
-
+	int bit_en_trop;
 	Packet *lePaquet;
 };
 
