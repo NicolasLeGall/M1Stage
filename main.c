@@ -44,9 +44,9 @@ int main(){
 	
 	int nbPaquetsTotalPDORProche=0;
 	int nbPaquetsTotalPDORLoin=0;
-	int nbPaquetsTotalsommePaquets_conommer=0;
-	int nbPaquetsTotalsommePaquets_conommerproche=0;
-	int nbPaquetsTotalsommePaquets_conommerloin=0;
+	int nbPaquetsTotalsommePaquets_consommer=0;
+	int nbPaquetsTotalsommePaquets_consommerproche=0;
+	int nbPaquetsTotalsommePaquets_consommerloin=0;
 	
 	double somme_bitsRestants=0;
 	double somme_bitsRestants_loin=0;
@@ -143,7 +143,7 @@ int main(){
 					somme_bitsRestants = somme_bitsRestants + packet->bitsRestants;
 					packet = packet->nextPacket;
 				}
-				if(monAntenne.users[g]->distance == 6){
+				if(monAntenne.users[g]->distance == 1){
 					packet_proche = monAntenne.users[g]->lePaquet;
 					while(packet_proche != NULL){
 						somme_bitsRestants_proche = somme_bitsRestants_proche + packet_proche->bitsRestants;
@@ -182,7 +182,7 @@ int main(){
 					nbPaquetsNonEnvoyes++;
 
 					/* Stats par distance */
-					if(monAntenne.users[i]->distance == 6){	
+					if(monAntenne.users[i]->distance == 1){	
 						/*sommeDelaisProche += (monAntenne.actualTime - tmpPacket->dateCreation);*/
 						nbPaquetsNonEnvoyesProche++;
 					}else{
@@ -200,20 +200,20 @@ int main(){
 			sommeDelais += monAntenne.users[i]->sommeDelais;
 			nbPaquetsTotal += monAntenne.users[i]->sommePaquets;
 			nbPaquetsTotalPDOR+= monAntenne.users[i]->sommeDelaisPDOR;
-			nbPaquetsTotalsommePaquets_conommer+= monAntenne.users[i]->sommePaquets_conommer;
+			nbPaquetsTotalsommePaquets_consommer += monAntenne.users[i]->sommePaquets_consommer;
 			user_sommeUR = user_sommeUR + monAntenne.users[i]->sommeUR;
 			
-			if(monAntenne.users[i]->distance == 6){	
+			if(monAntenne.users[i]->distance == 1){	
 				sommeDelaisProche += monAntenne.users[i]->sommeDelais;
 				nbPaquetsTotalProche += monAntenne.users[i]->sommePaquets;
 				nbPaquetsTotalPDORProche += monAntenne.users[i]->sommeDelaisPDOR;
-				nbPaquetsTotalsommePaquets_conommerproche+= monAntenne.users[i]->sommePaquets_conommer;
+				nbPaquetsTotalsommePaquets_consommerproche += monAntenne.users[i]->sommePaquets_consommer;
 				user_sommeUR_proche = user_sommeUR_proche + monAntenne.users[i]->sommeUR;
 			}else{	
 				sommeDelaisLoin += monAntenne.users[i]->sommeDelais;
 				nbPaquetsTotalLoin += monAntenne.users[i]->sommePaquets;
 				nbPaquetsTotalPDORLoin += monAntenne.users[i]->sommeDelaisPDOR;
-				nbPaquetsTotalsommePaquets_conommerloin+= monAntenne.users[i]->sommePaquets_conommer;
+				nbPaquetsTotalsommePaquets_consommerloin += monAntenne.users[i]->sommePaquets_consommer;
 				user_sommeUR_loin = user_sommeUR_loin + monAntenne.users[i]->sommeUR;
 			}
 			/*récupération du nombre d'UR utiliser */
@@ -229,22 +229,31 @@ int main(){
 		taux_remplissage_buffer_proche = somme_bitsRestants_proche/monAntenne.actualTime;
 		taux_remplissage_buffer_loin = somme_bitsRestants_loin/monAntenne.actualTime;
 		
-		delais_moyen = sommeDelais/(nbPaquetsTotal-nbPaquetsNonEnvoyes);
-		delais_moyen_proche = sommeDelaisProche/(nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche);
-		delais_moyen_loin = sommeDelaisLoin/(nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
+		delais_moyen = sommeDelais/(nbPaquetsTotalsommePaquets_consommer);
+		delais_moyen_proche = sommeDelaisProche/(nbPaquetsTotalsommePaquets_consommerproche);
+		delais_moyen_loin = sommeDelaisLoin/(nbPaquetsTotalsommePaquets_consommerloin);
 		debit_total_simu = debitTotal/monAntenne.actualTime;
 		
-		PDOR=((double)nbPaquetsTotalPDOR/((double)(nbPaquetsTotal-nbPaquetsNonEnvoyes)))*100;
-		PDORProche=((double)nbPaquetsTotalPDORProche/((double)(nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche)))*100;
-		PDORLoin=((double)nbPaquetsTotalPDORLoin/((double)(nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin)))*100;
+		PDOR=((double)nbPaquetsTotalPDOR/((double)(nbPaquetsTotalsommePaquets_consommer)))*100;
+		PDORProche=((double)nbPaquetsTotalPDORProche/((double)(nbPaquetsTotalsommePaquets_consommerproche)))*100;
+		PDORLoin=((double)nbPaquetsTotalPDORLoin/((double)(nbPaquetsTotalsommePaquets_consommerloin)))*100;
+		if(nbPaquetsTotalsommePaquets_consommer == 0){
+			PDOR = 100;
+		}
+		if(nbPaquetsTotalsommePaquets_consommerproche == 0){
+			PDORProche = 100;
+		}
+		if(nbPaquetsTotalsommePaquets_consommerloin == 0){
+			PDORLoin = 100;
+		}
 		
 		printf("--------------------------------------------------------------\n");
 				
 		printf("Statistiques pour %d utilisateurs: \n", nb_user);
 		printf("	Paquets proche : %d,            Paquets loin : %d,            somme Paquets : %d,            delais loin+proche : %d\n", nbPaquetsTotalProche,nbPaquetsTotalLoin,nbPaquetsTotal,nbPaquetsTotalProche+nbPaquetsTotalLoin);
 		printf("	nbPaquetsNonEnvoyesProche : %d, nbPaquetsNonEnvoyesLoin : %d, nbPaquetsNonEnvoyesTotal : %d, sommeDeLoinProche : %d\n", nbPaquetsNonEnvoyesProche, nbPaquetsNonEnvoyesLoin, nbPaquetsNonEnvoyes, nbPaquetsNonEnvoyesProche+nbPaquetsNonEnvoyesLoin);
-		printf("	nbPaquetsEnvoyesProche : %d,    nbPaquetsEnvoyesLoin : %d,    nbPaquetsEnvoyes : %d,         sommeEnvoyesLoinProche : %d\n", nbPaquetsTotalsommePaquets_conommerproche,
-		nbPaquetsTotalsommePaquets_conommerloin, nbPaquetsTotalsommePaquets_conommer, nbPaquetsTotalsommePaquets_conommerproche+nbPaquetsTotalsommePaquets_conommerloin);
+		printf("	nbPaquetsEnvoyesProche : %d,    nbPaquetsEnvoyesLoin : %d,    nbPaquetsEnvoyes : %d,         sommeEnvoyesLoinProche : %d\n", nbPaquetsTotalsommePaquets_consommerproche,
+		nbPaquetsTotalsommePaquets_consommerloin, nbPaquetsTotalsommePaquets_consommer, nbPaquetsTotalsommePaquets_consommerproche+nbPaquetsTotalsommePaquets_consommerloin);
 		printf("	DelaisProche : %.1f, delaisLoin : %.1f, sommeDelais : %.1f, delaisLoinProche : %.1f\n", (double)(sommeDelaisProche),(double)(sommeDelaisLoin),(double)(sommeDelais),(double)(sommeDelaisLoin+sommeDelaisProche));
 		/*printf("	débit max théorique: %.3f bit/S\n", 128*5*4.5*nb_tours);
 		printf("	débit moyen utilisateurs théorique: %.3f bit/S\n", (128*5*4.5*nb_tours)/nb_user);
@@ -267,8 +276,8 @@ int main(){
 			/*si les nombre sont écrie avec un point au lieu d'un virgule sa passer pas sur excel */
 	        /*fprintf(fichier,"%d;%.0f;%.0f;%.0f;%.0f;%.0f;%.0f;%d;%d\n", nb_user, debit_total_simu, delais_moyen,delais_moyen_proche,delais_moyen_loin, sommeDelaisProche, sommeDelaisLoin, nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche, nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);*/
 	        fprintf(fichier,"%d;%.0f;%d;%.0f;%.0f;%.0f;%.0f;%d;%d;%d;%.2f;%.2f;%.2f;%.2f;%d;%d;%d;%d;%d;%d\n", nb_user, debit_total_simu, total_nbBitsgenere, debitTotal, delais_moyen, delais_moyen_proche, delais_moyen_loin,
-			PDOR, PDORProche, PDORLoin, res_sommeUR, res_sommeUR_proche, res_sommeUR_loin, bit_par_UR, taux_remplissage_buffer, taux_remplissage_buffer_proche, taux_remplissage_buffer_loin, nbPaquetsTotal-nbPaquetsNonEnvoyes,
-			nbPaquetsTotalProche-nbPaquetsNonEnvoyesProche, nbPaquetsTotalLoin-nbPaquetsNonEnvoyesLoin);
+			PDOR, PDORProche, PDORLoin, res_sommeUR, res_sommeUR_proche, res_sommeUR_loin, bit_par_UR, taux_remplissage_buffer, taux_remplissage_buffer_proche, taux_remplissage_buffer_loin, nbPaquetsTotalsommePaquets_consommer,
+			nbPaquetsTotalsommePaquets_consommerproche, nbPaquetsTotalsommePaquets_consommerloin);
 	 
 		fclose(fichier);
 	    }
@@ -283,9 +292,9 @@ int main(){
 		sommeDelaisProche = 0;
 		sommeDelaisLoin = 0;
 		
-		PDOR =0;
+		/*PDOR =0;
 		PDORProche =0;
-		PDORLoin =0;
+		PDORLoin =0;*/
 		nbPaquetsTotalPDORProche =0;
 		nbPaquetsTotalPDORLoin =0;
 		
@@ -318,9 +327,9 @@ int main(){
 		nbPaquetsNonEnvoyesLoin = 0;
 		nbPaquetsTotalProche = 0;
 		nbPaquetsTotalLoin = 0;
-		nbPaquetsTotalsommePaquets_conommer=0;
-		nbPaquetsTotalsommePaquets_conommerproche=0;
-		nbPaquetsTotalsommePaquets_conommerloin=0;
+		nbPaquetsTotalsommePaquets_consommer=0;
+		nbPaquetsTotalsommePaquets_consommerproche=0;
+		nbPaquetsTotalsommePaquets_consommerloin=0;
 		
 		initAntenne(&monAntenne, nb_user);	
 	

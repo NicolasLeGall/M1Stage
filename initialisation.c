@@ -20,19 +20,19 @@ Packet* createPacket(time){
 User* initUser(){
 	int i = 0 ;
 	User *user = malloc(sizeof(User));
-	/*donne une distance de 3 ou 6 une fois sur 2 */
+	/*donne une distance de 1 ou 3 une fois sur 2 */
 	if(randDist%2 == 0){
 		user->distance=3;
 	}
 	else{
-		user->distance=6;
+		user->distance=1;
 	}
 	user->bufferVide=1;
 	user->SNRmoyen=0;
 	user->sommeDelais=0;
 	user->sommeDelaisPDOR=0;
 	user->sommePaquets = 1;
-	user->sommePaquets_conommer = 0;
+	user->sommePaquets_consommer = 0;
 	user->sommeUR = 0;
 	user->bit_en_trop = 0;
 	
@@ -138,7 +138,7 @@ int produceBit(Antenne *antenne, int nb_user){
 				}
 			}
         }
-		/*if(antenne->users[i]->distance == 6){
+		/*if(antenne->users[i]->distance == 1){
 			printf("User: %d ->",i);
 			while(packet_test->nextPacket != NULL){
 				//printf("[%d]->",packet_test->bitsRestants);
@@ -159,16 +159,29 @@ int produceBit(Antenne *antenne, int nb_user){
 void initMatriceDebits(Antenne *antenne, int nb_user){
 	int i = 0;
 	int j = 0;
-
+	double mkn = 0;
+	int d = 1;
+	double alpha = 0;
+	double puissance = 222;
+	
 	for(i = 0; i < nb_user; i++){
 		for(j = 0; j<128; j++){
 			/*pour chaque utilisateur on lui définit pour les 128 onde différente combien de bit il va pouvoir envoyer */
-			/*if(antenne->users[i]->distance == 6){
-				antenne->users[i]->SNRActuels[j] =6;
+			if(antenne->users[i]->distance == 1){
+				d = 1;
+				alpha =((-1 / 1) *(log( 1 - MRG32k3a())));/*alpha = 1 en moyenne*/
+				mkn=1+(((puissance)*alpha)/(d*d));
+				
+				/*-0.5 pour et (int) pour convertir a l'arrondie inférieur*/
+				antenne->users[i]->SNRActuels[j] = ((int)((log(mkn)/log(2))-0.5));// sa fait 6 en moyenne
+				//antenne->users[i]->SNRActuels[j] = getSNR(6);
 			}else{
-				antenne->users[i]->SNRActuels[j] =3;
-			}*/
-			antenne->users[i]->SNRActuels[j] = getSNR(antenne->users[i]->distance);
+				d = 3;
+				alpha =((-1 / 1) *(log( 1 - MRG32k3a())));/*alpha = 1 en moyenne*/
+				mkn=1+(((puissance)*alpha)/(d*d));
+				antenne->users[i]->SNRActuels[j] = ((int)((log(mkn)/log(2))-0.5));//sa fait 3 en moyenne
+				//antenne->users[i]->SNRActuels[j] = getSNR(3);
+			}
 			//printf("initMatriceDebits i :%d j :%d bitsRestants = %d \n", i,j,antenne->users[i]->SNRActuels[j]);
 		}
 	}
@@ -199,7 +212,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 		
 		// si il reste plusieurs packet dans la chaine
 		if((theUser->lePaquet->nextPacket->nextPacket != NULL) ){
-	theUser->sommePaquets_conommer++;
+			theUser->sommePaquets_consommer++;
 			//On soustrait au prochain paquet le SNR moins le contenu du paquet actuel 
 			bitConsommes = theUser->SNRActuels[subCarrier];
 			theUser->lePaquet->nextPacket->bitsRestants = theUser->lePaquet->nextPacket->bitsRestants - (theUser->SNRActuels[subCarrier] - theUser->lePaquet->bitsRestants);
@@ -208,7 +221,7 @@ int consumeBit(Antenne *antenne, int currentUser, int subCarrier){
 			theUser->lePaquet = theUser->lePaquet->nextPacket;
 			//free(tmpPacket);
 		}else{//si il rester qu'un packet
-			theUser->sommePaquets_conommer++;
+			theUser->sommePaquets_consommer++;
 			bitConsommes = theUser->lePaquet->bitsRestants;
 			theUser->lePaquet->bitsRestants = 0;
 

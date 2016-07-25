@@ -19,6 +19,7 @@ int maxSNR(Antenne *antenne, int nb_user) {
 /*NB_SUBCARRIERS = 128 NB_TIME_SLOTS = 5 */
 	for(g = 0; g < NB_TIME_SLOTS ; g++){// parcours les timeslots, //tant que User.BufferVide > 0 ou que g<5, on transmet au debit actuel a cet user
 		for(j = 0; j < NB_SUBCARRIERS ; j++){ //parcourt les subcariers
+		
 			/*pour empécher le cas ou MaxU reste MAxu alors que sont buffer est vide*/
 			new = 0;
 			for (i = 0; i < nb_user ; i++){
@@ -27,18 +28,21 @@ int maxSNR(Antenne *antenne, int nb_user) {
 					break;
 				}
 			}
+			/*comme c'est le premier qu'on trouve avec le SNRmax qui reste maxU on commence le parcourt de la liste par un début différent*/
 			random_user=(int)(MRG32k3a()*nb_user);
 			for (i = random_user; i < nb_user ; i++){
+				
 				/*si le SNR est mieu que celui a le meilleur SNR jusqu'a present et que buffervide =0 (bufervide est un bolean quand = 0 le buffer n'est pas vide)*/
-				if((antenne->users[i]->SNRActuels[j] > antenne->users[MaxU]->SNRActuels[j]) && (antenne->users[i]->bufferVide == 0)){
+				if((antenne->users[i]->SNRActuels[j] >= antenne->users[MaxU]->SNRActuels[j]) && (antenne->users[i]->bufferVide == 0)){
 					// si l'User a un meilleur debit, et que son buffer n'est pas vide: il devient le MaxUser 
 					MaxU = i;
 					new = 1;
 				}
 			}
 			for (i = 0; i < random_user ; i++){
+				
 				/*si le SNR est mieu que celui a le meilleur SNR jusqu'a present et que buffervide =0 (bufervide est un bolean quand = 0 le buffer n'est pas vide)*/
-				if((antenne->users[i]->SNRActuels[j] > antenne->users[MaxU]->SNRActuels[j]) && (antenne->users[i]->bufferVide == 0)){
+				if((antenne->users[i]->SNRActuels[j] >= antenne->users[MaxU]->SNRActuels[j]) && (antenne->users[i]->bufferVide == 0)){
 					// si l'User a un meilleur debit, et que son buffer n'est pas vide: il devient le MaxUser 
 					MaxU = i;
 					new = 1;
@@ -49,7 +53,6 @@ int maxSNR(Antenne *antenne, int nb_user) {
 				debitTotalTrame += consumeBit(antenne, MaxU, j);
 			}
 			
-
 		}
 
 	}
